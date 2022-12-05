@@ -4,7 +4,7 @@ import { Route, Routes, Link } from 'react-router-dom'
 import { Layout, Menu } from 'antd'
 import { LongContent } from '/test/LongContent'
 import styled from 'styled-components'
-import { IndexMenu } from './IndexMenu'
+import { IndexMenu } from './menu'
 const { Header, Content, Sider } = Layout
 dayjs.locale('zh-cn')
 const Logo = styled.div`
