@@ -1,18 +1,20 @@
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import { useBoolean } from 'ahooks'
 import { Button, Col, Form, Input, Modal, Row, Select, Switch } from 'antd'
-import React from 'react'
-import { querySQL, useSql, useSqlformat } from '/utils/useSql'
+import React, { FC, useCallback, useContext, useMemo } from 'react'
+import { querySQL, useSql, useSqlformat } from '../../hooks/useSql'
 import { columnTypeOptions } from '/utils/columnTypeOptions'
-import { AddTableLengthValue } from './AddTableLengthValue'
-import { AddTableValueDefault } from './AddTableValueDefault'
+import { AddTableLengthValue } from './LengthValue'
+import { AddTableValueDefault } from './ValueDefault'
 import styled from 'styled-components'
+import { AppContext } from '/AppContext'
 const propertyOptions = [
   { label: 'BINARY', value: 'BINARY' },
   { label: 'UNSIGNED', value: 'UNSIGNED' },
   { label: 'UNSIGNED ZEROFILL', value: 'UNSIGNED ZEROFILL' },
   { label: 'on update CURRENT_TIMESTAMP', value: 'on update CURRENT_TIMESTAMP' },
 ]
+
 const indexOptions = [
   { label: 'AUTO_INCREMENT', value: 'AUTO_INCREMENT', title: '自增' },
   { label: 'PRIMARY', value: 'PRIMARY', title: '主键' },
@@ -21,9 +23,7 @@ const indexOptions = [
   { label: 'FULLTEXT', value: 'FULLTEXT', title: '全文搜索' },
   { label: 'SPATIAL', value: 'SPATIAL', title: '空间' },
 ]
-interface IProps {
-  dbName: string
-}
+
 const Styled = styled.div`
   .column {
     display: flex;
@@ -39,9 +39,38 @@ const Styled = styled.div`
     }
   }
 `
-export const AddTable: React.FC<IProps> = ({ dbName }) => {
+type IFormData = {
+  dbName: string
+  tableName: string
+  columns: {
+    Default?: string
+    Index?: string
+    LengthValue?: string | number
+    Name: string
+    Null: boolean
+    Property?: string
+    Type?: string
+  }[]
+}
+interface IProps {
+  dbName: string
+  afterSubmit: (dbName: string, tableName: string) => void
+}
+export const AddTable: FC<IProps> = ({ dbName, afterSubmit }) => {
+  const { dbList } = useContext(AppContext)
   const [open, { setFalse, setTrue }] = useBoolean(false)
-  const [form] = Form.useForm()
+  const [form] = Form.useForm<IFormData>()
+  const dbNameOptions = useMemo(() => dbList.map(db => ({ label: db, value: db })), [dbList])
+  const onFinish = useCallback(
+    (formData: IFormData) => {
+      console.log(formData)
+      setFalse()
+      setTimeout(() => {
+        afterSubmit(formData.dbName, formData.tableName)
+      }, 1000)
+    },
+    [afterSubmit]
+  )
 
   return (
     <div style={{ textAlign: 'center' }}>
@@ -49,25 +78,31 @@ export const AddTable: React.FC<IProps> = ({ dbName }) => {
         添加数据表
       </Button>
       <Modal width={1200} destroyOnClose open={open} title="添加数据表" onCancel={setFalse} onOk={form.submit}>
-        <Form preserve={false} form={form} labelCol={{ flex: '0 0 80px' }} initialValues={{ dbName }}>
+        <Form
+          preserve={false}
+          form={form}
+          labelCol={{ flex: '0 0 80px' }}
+          initialValues={{ dbName }}
+          onFinish={onFinish}
+        >
           <Row>
             <Col span={12}>
               <Form.Item
                 name="dbName"
-                label="表名称"
+                label="数据库"
                 rules={[
                   {
                     required: true,
-                    message: '请输入数据表名称',
+                    message: '请选择数据库',
                   },
                 ]}
               >
-                <Input />
+                <Select placeholder="请选择数据库" options={dbNameOptions} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
-                name="name"
+                name="tableName"
                 label="表名称"
                 rules={[
                   {
@@ -86,51 +121,62 @@ export const AddTable: React.FC<IProps> = ({ dbName }) => {
                 <Styled>
                   {fields.map(({ key, name, ...restField }) => (
                     <div key={key} className="column">
+                      {/* 字段名称 */}
                       <Form.Item
                         style={{ width: '100%' }}
                         {...restField}
-                        name={[name, 'name']}
+                        name={[name, 'Name']}
                         rules={[{ required: true, message: '请输入字段名称' }]}
                       >
                         <Input placeholder="字段名称" />
                       </Form.Item>
+                      {/* 字段类型 */}
+
                       <Form.Item
                         {...restField}
-                        name={[name, 'type']}
+                        name={[name, 'Type']}
                         rules={[{ required: true, message: '请选择字段类型' }]}
                         style={{ width: '100%' }}
                       >
                         <Select placeholder="字段类型" options={columnTypeOptions} />
                       </Form.Item>
+
+                      {/* shouldUpdate */}
                       <Form.Item
                         shouldUpdate={(prevValues, curValues) =>
-                          prevValues.columns[name]?.type !== curValues.columns[name]?.type
+                          prevValues.columns[name]?.Type !== curValues.columns[name]?.Type
                         }
                       >
                         {() =>
-                          AddTableLengthValue(form.getFieldValue(['columns', name, 'type']), {
-                            name: [name, 'lengthValue'],
+                          AddTableLengthValue(form.getFieldValue(['columns', name, 'Type']), {
+                            name: [name, 'LengthValue'],
                             style: { width: '80px' },
                             ...restField,
                           })
                         }
                       </Form.Item>
 
+                      {/* 默认值 */}
                       <AddTableValueDefault restField={{ name: [name, 'Default'], ...restField }} />
 
-                      <Form.Item {...restField} name={[name, 'property']} style={{ width: '100%', maxWidth: '150px' }}>
+                      {/* 字段属性 */}
+                      <Form.Item {...restField} name={[name, 'Property']} style={{ width: '100%', maxWidth: '150px' }}>
                         <Select allowClear placeholder="字段属性" options={propertyOptions} />
                       </Form.Item>
 
+                      {/* 空 */}
                       <Form.Item
                         style={{ width: '100%', maxWidth: '60px' }}
                         {...restField}
-                        name={[name, 'null']}
+                        name={[name, 'Null']}
                         valuePropName="checked"
+                        initialValue={false}
                       >
                         <Switch checkedChildren="可空" unCheckedChildren="非空" />
                       </Form.Item>
-                      <Form.Item {...restField} name={[name, 'index']} style={{ width: '100%', maxWidth: '150px' }}>
+
+                      {/* 索引 */}
+                      <Form.Item {...restField} name={[name, 'Index']} style={{ width: '100%', maxWidth: '150px' }}>
                         <Select allowClear placeholder="索引" options={indexOptions} />
                       </Form.Item>
 

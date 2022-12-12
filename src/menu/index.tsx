@@ -1,11 +1,14 @@
+import React, { FC, useCallback, useContext, useMemo, useState } from 'react'
 import { DatabaseFilled, LoadingOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Menu, Spin } from 'antd'
-import React from 'react'
-import { useSql, useSqlformat } from '/utils/useSql'
+import { useSql, useSqlformat } from '/hooks/useSql'
 import { SubMenuType } from 'antd/es/menu/hooks/useItems'
-import { useReqTable } from '/utils/useReqTable'
+import { useReqTable } from '/hooks/useReqTable'
+import { AddTable } from '/components/add-table'
+import { AppContext } from '/AppContext'
+
 import styled from 'styled-components'
-import { AddTable } from './AddTable'
+
 const Styled = styled.div`
   flex: 1;
   .loading {
@@ -28,17 +31,29 @@ const Styled = styled.div`
   }
 `
 interface IProps {}
-export const IndexMenu: React.FC<IProps> = ({}) => {
-  const [openKeys, setOpenKeys] = React.useState<string[]>([])
-
+export const IndexMenu: FC<IProps> = ({}) => {
+  const [openKeys, setOpenKeys] = useState<string[]>([])
   const { databases, reqTable } = useReqTable()
   const { data, error } = useSql({ sql: 'show databases', params: [], formatResult: useSqlformat }, true)
-
-  const items: SubMenuType[] = React.useMemo(() => {
+  const value = useContext(AppContext)
+  // const afterAddTable = useCallback((dbName: string, tableName: string) => {
+  //   reqTable(dbName)
+  // }, [])
+  const dbList: string[] | undefined = useMemo(() => {
+    if (!data) {
+      return undefined
+    }
+    const dbs: string[] = []
+    for (const { Database } of data) {
+      dbs.push(String(Database || ''))
+    }
+    value.dbList = dbs
+    return dbs
+  }, [data])
+  const items: SubMenuType[] = useMemo(() => {
     const newItems: SubMenuType[] = []
-    if (data) {
-      for (const { Database } of data) {
-        const database = String(Database || '')
+    if (dbList) {
+      for (const database of dbList) {
         const dbReqResult = databases[database]
         const item: SubMenuType = {
           key: database,
@@ -49,7 +64,7 @@ export const IndexMenu: React.FC<IProps> = ({}) => {
             ? dbReqResult.map(tableName => ({
                 disabled: !tableName,
                 key: JSON.stringify({ database, tableName }),
-                label: tableName || <AddTable dbName={database} />,
+                label: tableName || <AddTable dbName={database} afterSubmit={reqTable} />,
               }))
             : [],
         }
@@ -67,9 +82,9 @@ export const IndexMenu: React.FC<IProps> = ({}) => {
       children: [],
     })
     return newItems
-  }, [data, databases])
+  }, [dbList, databases])
 
-  const onOpenChange = React.useCallback(
+  const onOpenChange = useCallback(
     (newKeys: string[]) => {
       newKeys.forEach(key => {
         const info = items.find(d => d.key === key)

@@ -4,7 +4,7 @@ import React from 'react'
 export const AddTableLengthValue = (type: string, restField: any) => {
   if (!type || ['DATE', 'TIME'].some(keyword => type.includes(keyword))) {
     return (
-      <Form.Item {...restField} initialValue={''}>
+      <Form.Item {...restField}>
         <Input disabled placeholder="不用填" />
       </Form.Item>
     )

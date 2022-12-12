@@ -1,5 +1,5 @@
 import { message } from 'antd'
-import React from 'react'
+import { useRef, useState } from 'react'
 import { querySQL, useSqlformat } from './useSql'
 
 type IUseReqTables = { [x: string]: string[] | 'loading' }
@@ -7,12 +7,15 @@ export function useReqTable(): {
   databases: IUseReqTables
   reqTable: (dbName: string) => Promise<void>
 } {
-  const [databases, setDatabases] = React.useState<IUseReqTables>({})
-  const ref = React.useRef<IUseReqTables>({})
+  const [databases, setDatabases] = useState<IUseReqTables>({})
+  const ref = useRef<IUseReqTables>({})
 
   const reqTable = async (dbName: string) => {
-    ref.current[dbName] = 'loading'
-    setDatabases({ ...ref.current })
+    if (ref.current[dbName] === undefined) {
+      ref.current[dbName] = 'loading'
+      setDatabases({ ...ref.current })
+    }
+
     try {
       const item: string[] = useSqlformat(await querySQL([], 'show tables', dbName))
         .map(obj => {

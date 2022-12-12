@@ -1,4 +1,4 @@
-import React from 'react'
+import { Dispatch, SetStateAction, useCallback, useRef, useState } from 'react'
 
 export enum EMysqlFieldType {
   decimal = 0x00,
@@ -90,7 +90,7 @@ type IUseSqlReturn<T, F> = {
   data: F | undefined
   loading: boolean | undefined
   error: Error | null | undefined
-  setData: React.Dispatch<React.SetStateAction<F | undefined>>
+  setData: Dispatch<SetStateAction<F | undefined>>
   run: (
     params: T extends true ? IMysqlValue[] : IMysqlValue[] | void,
     sql: T extends true ? string : string | void,
@@ -113,12 +113,12 @@ export function useSql<F = IUseSqlData>(opt: IUseSqlOpt<F> & Partial<IUseSqlOptM
 export function useSql<F = IUseSqlData>(opt: IUseSqlOpt<F> & IUseSqlOptMain, auto: true): IUseSqlReturn<false, F>
 
 export function useSql<F = IUseSqlData>(opt?: IUseSqlOpt<F> & Partial<IUseSqlOptMain>, auto?: true): any {
-  const [data, setData] = React.useState<F | null>()
-  const [loading, setLoading] = React.useState<boolean>(Boolean(auto))
-  const [error, setError] = React.useState<Error | null>()
-  const { current } = React.useRef({ isFirstRun: true })
+  const [data, setData] = useState<F | null>()
+  const [loading, setLoading] = useState<boolean>(Boolean(auto))
+  const [error, setError] = useState<Error | null>()
+  const { current } = useRef({ isFirstRun: true })
 
-  const run = React.useCallback(
+  const run = useCallback(
     (runParams?: IMysqlValue[], runSql?: string, dbName?: string) =>
       new Promise((resolve, reject) => {
         const sql = runSql ?? opt?.sql ?? ''

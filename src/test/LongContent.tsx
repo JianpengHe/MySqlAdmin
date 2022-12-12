@@ -1,7 +1,7 @@
 import { useBoolean } from 'ahooks'
 import { Button, Modal } from 'antd'
 import React, { useCallback } from 'react'
-import { useSql, useSqlformat } from '../utils/useSql'
+import { useSql, useSqlformat } from '../hooks/useSql'
 
 interface IProps {}
 export const LongContent: React.FC<IProps> = ({}) => {
